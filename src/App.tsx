@@ -380,13 +380,59 @@ const FAQ = () => (
 );
 
 const ContactForm = () => {
-  const [status, setStatus] = useState<'idle' | 'success'>('idle');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [phone, setPhone] = useState('+39 ');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value.startsWith('+39')) {
+      setPhone(value);
+    } else if (value.length < 3) {
+      setPhone('+39 ');
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setStatus('success');
-    if (window.fbq) {
-      window.fbq('track', 'Lead');
+    setStatus('loading');
+    
+    const form = e.currentTarget;
+    const rawPhone = (form.elements.namedItem('telefono') as HTMLInputElement).value;
+    const cleanPhone = rawPhone.replace('+39', '').trim();
+
+    const formData = {
+      nome: (form.elements.namedItem('nome') as HTMLInputElement).value,
+      azienda: (form.elements.namedItem('azienda') as HTMLInputElement).value,
+      email: (form.elements.namedItem('email') as HTMLInputElement).value,
+      telefono: cleanPhone,
+    };
+
+    try {
+      const scriptURL = import.meta.env.VITE_GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbzyOi7jT5doBZgaPVPnlhSqMf_uXNI5TBUTQjc8S43N17D9qPDapvbw_g1R45HPWlxD/exec';
+      
+      if (scriptURL) {
+        // Invio dati a Google Sheets
+        await fetch(scriptURL, {
+          method: 'POST',
+          mode: 'no-cors', // Necessario per Google Apps Script
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+      } else {
+        console.warn("VITE_GOOGLE_SCRIPT_URL non configurato. I dati non verranno salvati su Google Sheets.");
+        // Simuliamo un ritardo per l'esperienza utente
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      setStatus('success');
+      if (window.fbq) {
+        window.fbq('track', 'Lead');
+      }
+    } catch (error) {
+      console.error('Errore durante l\'invio:', error);
+      setStatus('error');
     }
   };
 
@@ -443,20 +489,28 @@ const ContactForm = () => {
                 <div className="grid sm:grid-cols-2 gap-5">
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-700">Nome e Cognome</label>
-                    <input required type="text" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="Mario Rossi" />
+                    <input name="nome" required type="text" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="Mario Rossi" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-700">Nome Azienda / Studio</label>
-                    <input required type="text" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="Studio S.r.l." />
+                    <input name="azienda" required type="text" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="Studio S.r.l." />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">Email Aziendale</label>
-                  <input required type="email" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="mario.rossi@azienda.it" />
+                  <input name="email" required type="email" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="mario.rossi@azienda.it" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">Telefono</label>
-                  <input required type="tel" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="+39 333 1234567" />
+                  <input 
+                    name="telefono" 
+                    required 
+                    type="tel" 
+                    value={phone}
+                    onChange={handlePhoneChange}
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
+                    placeholder="+39 333 1234567" 
+                  />
                 </div>
                 <div className="flex items-start gap-3 py-2">
                   <input required type="checkbox" className="mt-1 h-4 w-4 rounded border-slate-300 text-brand-blue focus:ring-brand-blue" id="privacy" />
@@ -464,9 +518,23 @@ const ContactForm = () => {
                     Accetto il trattamento dei dati personali secondo la <a href="#" className="underline">Privacy Policy</a>. I tuoi dati sono al sicuro.
                   </label>
                 </div>
-                <button type="submit" className="w-full bg-brand-blue text-white py-4 rounded-xl text-lg font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-200">
-                  RICHIEDI IL TUO PREVENTIVO GRATUITO
+                <button 
+                  type="submit" 
+                  disabled={status === 'loading'}
+                  className="w-full bg-brand-blue text-white py-4 rounded-xl text-lg font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {status === 'loading' ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      INVIO IN CORSO...
+                    </>
+                  ) : (
+                    'RICHIEDI IL TUO PREVENTIVO GRATUITO'
+                  )}
                 </button>
+                {status === 'error' && (
+                  <p className="text-red-500 text-sm text-center font-medium">Si è verificato un errore. Riprova più tardi.</p>
+                )}
               </form>
             )}
           </div>
