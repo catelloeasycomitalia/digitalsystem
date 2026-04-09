@@ -23,7 +23,7 @@ declare global {
   }
 }
 
-const LOGO_URL = "https://www.digitalsystem.biz/nuovosito/wp-content/uploads/2021/11/Nuovo-logo.jpg";
+const LOGO_URL = "https://www.digitalsystem.biz/wp-content/uploads/2021/11/Nuovo-logo.jpg";
 
 const Navbar = () => (
   <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100 py-4">
@@ -40,7 +40,7 @@ const Navbar = () => (
         </a>
       </div>
       <a href="#contatti" className="bg-brand-blue text-white px-3 py-1.5 sm:px-5 sm:py-2 rounded-full text-[10px] sm:text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 whitespace-nowrap">
-        PREVENTIVO GRATUITO
+        BLOCCA IL TUO COUPON
       </a>
     </div>
   </nav>
@@ -402,13 +402,16 @@ const ContactForm = () => {
 
     const formData = {
       nome: (form.elements.namedItem('nome') as HTMLInputElement).value,
-      azienda: (form.elements.namedItem('azienda') as HTMLInputElement).value,
       email: (form.elements.namedItem('email') as HTMLInputElement).value,
       telefono: cleanPhone,
+      tipo_attivita: (form.elements.namedItem('tipo_attivita') as HTMLInputElement).value,
+      postazioni: (form.elements.namedItem('postazioni') as HTMLInputElement).value,
+      quantita_stampanti: (form.elements.namedItem('quantita_stampanti') as HTMLInputElement).value,
+      tipologia_attuale: (form.elements.namedItem('tipologia_attuale') as HTMLSelectElement).value,
     };
 
     try {
-      const scriptURL = import.meta.env.VITE_GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbzyOi7jT5doBZgaPVPnlhSqMf_uXNI5TBUTQjc8S43N17D9qPDapvbw_g1R45HPWlxD/exec';
+      const scriptURL = import.meta.env.VITE_GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycby6--onKQltU35piTuTDx99r3SxB3pSor5HxVWedguiaLy0uhoWcCfwb5l3A43BjatI/exec';
       
       if (scriptURL) {
         // Invio dati a Google Sheets
@@ -492,25 +495,52 @@ const ContactForm = () => {
                     <input name="nome" required type="text" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="Mario Rossi" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700">Nome Azienda / Studio</label>
-                    <input name="azienda" required type="text" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="Studio S.r.l." />
+                    <label className="text-sm font-bold text-slate-700">Email Aziendale</label>
+                    <input name="email" required type="email" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="mario.rossi@azienda.it" />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">Email Aziendale</label>
-                  <input name="email" required type="email" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="mario.rossi@azienda.it" />
+
+                <div className="grid sm:grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">Telefono</label>
+                    <input 
+                      name="telefono" 
+                      required 
+                      type="tel" 
+                      value={phone}
+                      onChange={handlePhoneChange}
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
+                      placeholder="+39 333 1234567" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">Nome Azienda / Studio</label>
+                    <input name="tipo_attivita" required type="text" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="es. Studio Legale, CAF..." />
+                  </div>
                 </div>
+
+                <div className="grid sm:grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">Postazioni di lavoro?</label>
+                    <input name="postazioni" required type="number" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="es. 5" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">Quante stampanti avete?</label>
+                    <input name="quantita_stampanti" required type="number" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="es. 2" />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">Telefono</label>
-                  <input 
-                    name="telefono" 
+                  <label className="text-sm font-bold text-slate-700">Che Tipologia?</label>
+                  <select 
+                    name="tipologia_attuale" 
                     required 
-                    type="tel" 
-                    value={phone}
-                    onChange={handlePhoneChange}
-                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
-                    placeholder="+39 333 1234567" 
-                  />
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none"
+                  >
+                    <option value="" disabled selected>Seleziona tipologia...</option>
+                    <option value="proprietà">Proprietà</option>
+                    <option value="noleggio">Noleggio</option>
+                  </select>
                 </div>
                 <div className="flex items-start gap-3 py-2">
                   <input required type="checkbox" className="mt-1 h-4 w-4 rounded border-slate-300 text-brand-blue focus:ring-brand-blue" id="privacy" />
@@ -529,7 +559,7 @@ const ContactForm = () => {
                       INVIO IN CORSO...
                     </>
                   ) : (
-                    'RICHIEDI IL TUO PREVENTIVO GRATUITO'
+                    'BLOCCA IL TUO COUPON'
                   )}
                 </button>
                 {status === 'error' && (
@@ -581,7 +611,7 @@ const Footer = () => (
           <h4 className="text-white font-bold mb-6">Dati Societari</h4>
           <ul className="space-y-4 text-sm">
             <li>Digital System S.r.l.</li>
-            <li>P.IVA: 02099660686</li>
+            <li>P.IVA: 02433650682</li>
             <li>Sede Operativa: Pescara (PE)</li>
           </ul>
         </div>
