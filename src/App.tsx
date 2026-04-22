@@ -25,11 +25,167 @@ declare global {
 
 const LOGO_URL = "https://www.digitalsystem.biz/wp-content/uploads/2021/11/Nuovo-logo.jpg";
 
+const LeadForm = ({ compact = false }: { compact?: boolean }) => {
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [phone, setPhone] = useState('+39 ');
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value.startsWith('+39')) {
+      setPhone(value);
+    } else if (value.length < 3) {
+      setPhone('+39 ');
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setStatus('loading');
+    
+    const form = e.currentTarget;
+    const rawPhone = (form.elements.namedItem('telefono') as HTMLInputElement).value;
+    const cleanPhone = rawPhone.replace('+39', '').trim();
+
+    const formData = {
+      nome: (form.elements.namedItem('nome') as HTMLInputElement).value,
+      email: (form.elements.namedItem('email') as HTMLInputElement).value,
+      telefono: cleanPhone,
+      tipo_attivita: (form.elements.namedItem('tipo_attivita') as HTMLInputElement).value,
+      postazioni: (form.elements.namedItem('postazioni') as HTMLInputElement).value,
+      quantita_stampanti: (form.elements.namedItem('quantita_stampanti') as HTMLInputElement).value,
+      tipologia_attuale: (form.elements.namedItem('tipologia_attuale') as HTMLSelectElement).value,
+    };
+
+    try {
+      const scriptURL = import.meta.env.VITE_GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycby6--onKQltU35piTuTDx99r3SxB3pSor5HxVWedguiaLy0uhoWcCfwb5l3A43BjatI/exec';
+      
+      if (scriptURL) {
+        await fetch(scriptURL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      setStatus('success');
+      if (window.fbq) {
+        window.fbq('track', 'Lead');
+      }
+    } catch (error) {
+      console.error('Errore durante l\'invio:', error);
+      setStatus('error');
+    }
+  };
+
+  return (
+    <div className={`bg-white ${compact ? 'p-6 sm:p-8' : 'p-8 sm:p-10'} rounded-3xl shadow-2xl border border-slate-100 relative w-full`}>
+      {status === 'success' ? (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center py-12"
+        >
+          <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 size={40} />
+          </div>
+          <h3 className="text-2xl font-bold text-slate-900 mb-2">Richiesta Inviata!</h3>
+          <p className="text-slate-600">Ti ricontatteremo entro 2 ore lavorative.</p>
+          <button onClick={() => setStatus('idle')} className="mt-8 text-brand-blue font-bold hover:underline">Invia un'altra richiesta</button>
+        </motion.div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Nome e Cognome</label>
+              <input name="nome" required type="text" className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm" placeholder="Mario Rossi" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Email Aziendale</label>
+              <input name="email" required type="email" className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm" placeholder="mario.rossi@azienda.it" />
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Telefono</label>
+              <input 
+                name="telefono" 
+                required 
+                type="tel" 
+                value={phone}
+                onChange={handlePhoneChange}
+                className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm" 
+                placeholder="+39 333 1234567" 
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Nome Azienda / Studio</label>
+              <input name="tipo_attivita" required type="text" className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm" placeholder="es. Studio Legale..." />
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Postazioni lavoro</label>
+              <input name="postazioni" required type="number" className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm" placeholder="es. 5" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Quante stampanti?</label>
+              <input name="quantita_stampanti" required type="number" className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm" placeholder="es. 2" />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Che Tipologia?</label>
+            <select 
+              name="tipologia_attuale" 
+              required 
+              className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none text-sm"
+            >
+              <option value="" disabled selected>Seleziona tipologia...</option>
+              <option value="proprietà">Proprietà</option>
+              <option value="noleggio">Noleggio</option>
+            </select>
+          </div>
+          <div className="flex items-start gap-3 py-1">
+            <input required type="checkbox" className="mt-1 h-3.5 w-3.5 rounded border-slate-300 text-brand-blue focus:ring-brand-blue" id={`privacy-${compact ? 'compact' : 'full'}`} />
+            <label htmlFor={`privacy-${compact ? 'compact' : 'full'}`} className="text-[10px] text-slate-500 leading-tight">
+              Accetto il trattamento dei dati personali secondo la <a href="#" className="underline">Privacy Policy</a>.
+            </label>
+          </div>
+          <button 
+            type="submit" 
+            disabled={status === 'loading'}
+            className="w-full bg-brand-blue text-white py-3.5 rounded-xl text-md font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {status === 'loading' ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                INVIO...
+              </>
+            ) : (
+              'BLOCCA IL TUO COUPON'
+            )}
+          </button>
+          {status === 'error' && (
+            <p className="text-red-500 text-[10px] text-center font-medium">Errore. Riprova più tardi.</p>
+          )}
+        </form>
+      )}
+    </div>
+  );
+};
+
 const Navbar = () => (
   <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100 py-4">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
       <div className="flex items-center gap-2">
-        <img src={LOGO_URL} alt="Digital System Logo" className="h-10 object-contain" referrerPolicy="no-referrer" />
+        <img src={LOGO_URL} alt="Digital System Logo" className="h-10 object-contain" referrerPolicy="no-referrer" decoding="async" />
       </div>
       <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
         <a href="#soluzione" className="hover:text-brand-blue transition-colors">Soluzioni</a>
@@ -51,58 +207,56 @@ const Hero = () => (
     <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1920')] bg-cover bg-center opacity-10 pointer-events-none" />
     <div className="absolute inset-0 bg-gradient-to-b from-blue-50/80 to-white/95 pointer-events-none" />
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-      <div className="max-w-3xl">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-brand-blue text-xs font-bold uppercase tracking-wider mb-6"
-        >
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-blue"></span>
-          </span>
-          PMI, CAF e Studi Professionali
-        </motion.div>
-        
-        <motion.h1 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="text-5xl lg:text-7xl font-extrabold text-slate-900 leading-[1.1] mb-8"
-        >
-          Noleggio Stampanti: <span className="text-brand-blue">Zero Fermi Macchina</span>, Assistenza Immediata.
-        </motion.h1>
-        
-        <motion.p 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="text-xl text-slate-600 mb-10 leading-relaxed"
-        >
-          Smetti di preoccuparti del toner esaurito o della stampante bloccata prima di una scadenza. Scegli il noleggio operativo "All Inclusive": macchine affidabili, monitoraggio da remoto e un canone fisso mensile senza sorprese.
-        </motion.p>
-        
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="flex flex-col sm:flex-row items-start sm:items-center gap-4"
-        >
-          <a href="#contatti" className="group bg-brand-orange text-white px-8 py-4 rounded-xl text-lg font-bold hover:bg-orange-600 transition-all shadow-xl shadow-orange-200 flex items-center gap-2">
-            RICHIEDI UN PREVENTIVO GRATUITO
-            <ArrowRight className="group-hover:translate-x-1 transition-transform" />
-          </a>
-          <div className="flex items-center gap-2 text-slate-500 text-sm font-medium">
-            <Clock size={18} className="text-green-500" />
-            Rispondiamo in meno di 2 ore. Nessun impegno.
+      <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-brand-blue text-xs font-bold uppercase tracking-wider mb-6"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-blue"></span>
+            </span>
+            PMI, CAF e Studi Professionali
+          </motion.div>
+          
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-4xl lg:text-6xl font-extrabold text-slate-900 leading-[1.1] mb-8"
+          >
+            Noleggio Stampanti: <span className="text-brand-blue">Zero Fermi Macchina</span>, Assistenza Immediata.
+          </motion.h1>
+          
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-lg text-slate-600 mb-10 leading-relaxed"
+          >
+            Smetti di preoccuparti del toner esaurito o della stampante bloccata prima di una scadenza. Scegli il noleggio operativo "All Inclusive": macchine affidabili e assistenza immediata.
+          </motion.p>
+
+          <div className="flex items-center gap-4 text-slate-500 text-sm font-medium">
+            <div className="bg-white/50 backdrop-blur-sm px-4 py-2 rounded-full border border-slate-100 flex items-center gap-2">
+              <Clock size={18} className="text-green-500" />
+              Rispondiamo in meno di 2 ore.
+            </div>
           </div>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.3 }}
+          className="relative z-10"
+        >
+          <div className="absolute -inset-4 bg-brand-blue/5 rounded-[2rem] blur-2xl pointer-events-none" />
+          <LeadForm compact={true} />
         </motion.div>
       </div>
-    </div>
-    
-    {/* Abstract Tech Element */}
-    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/3 h-full hidden lg:block opacity-10 pointer-events-none">
-      <Printer size={600} className="text-brand-blue" />
     </div>
   </section>
 );
@@ -137,12 +291,13 @@ const Problem = () => (
         </div>
         <div className="relative">
           <div className="aspect-square rounded-3xl overflow-hidden shadow-2xl">
-            <img 
-              src="https://us.123rf.com/450wm/wavebreakmediamicro/wavebreakmediamicro1511/wavebreakmediamicro151103012/47404442-imprenditore-stressato-sul-lavoro-in-ufficio-casuale.jpg?ver=6" 
-              alt="Imprenditore stressato" 
-              className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700"
-              referrerPolicy="no-referrer"
-            />
+              <img 
+                src="https://us.123rf.com/450wm/wavebreakmediamicro/wavebreakmediamicro1511/wavebreakmediamicro151103012/47404442-imprenditore-stressato-sul-lavoro-in-ufficio-casuale.jpg?ver=6" 
+                alt="Imprenditore stressato" 
+                className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700"
+                referrerPolicy="no-referrer"
+                loading="lazy"
+              />
           </div>
           <div className="absolute -bottom-6 -left-6 bg-white p-6 rounded-2xl shadow-xl border border-slate-100 max-w-xs">
             <div className="text-red-500 font-bold text-4xl mb-2 font-mono">25%</div>
@@ -380,65 +535,6 @@ const FAQ = () => (
 );
 
 const ContactForm = () => {
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [phone, setPhone] = useState('+39 ');
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    if (value.startsWith('+39')) {
-      setPhone(value);
-    } else if (value.length < 3) {
-      setPhone('+39 ');
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setStatus('loading');
-    
-    const form = e.currentTarget;
-    const rawPhone = (form.elements.namedItem('telefono') as HTMLInputElement).value;
-    const cleanPhone = rawPhone.replace('+39', '').trim();
-
-    const formData = {
-      nome: (form.elements.namedItem('nome') as HTMLInputElement).value,
-      email: (form.elements.namedItem('email') as HTMLInputElement).value,
-      telefono: cleanPhone,
-      tipo_attivita: (form.elements.namedItem('tipo_attivita') as HTMLInputElement).value,
-      postazioni: (form.elements.namedItem('postazioni') as HTMLInputElement).value,
-      quantita_stampanti: (form.elements.namedItem('quantita_stampanti') as HTMLInputElement).value,
-      tipologia_attuale: (form.elements.namedItem('tipologia_attuale') as HTMLSelectElement).value,
-    };
-
-    try {
-      const scriptURL = import.meta.env.VITE_GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycby6--onKQltU35piTuTDx99r3SxB3pSor5HxVWedguiaLy0uhoWcCfwb5l3A43BjatI/exec';
-      
-      if (scriptURL) {
-        // Invio dati a Google Sheets
-        await fetch(scriptURL, {
-          method: 'POST',
-          mode: 'no-cors', // Necessario per Google Apps Script
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        });
-      } else {
-        console.warn("VITE_GOOGLE_SCRIPT_URL non configurato. I dati non verranno salvati su Google Sheets.");
-        // Simuliamo un ritardo per l'esperienza utente
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-
-      setStatus('success');
-      if (window.fbq) {
-        window.fbq('track', 'Lead');
-      }
-    } catch (error) {
-      console.error('Errore durante l\'invio:', error);
-      setStatus('error');
-    }
-  };
-
   return (
     <section id="contatti" className="py-24 bg-white tech-grid">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -473,101 +569,7 @@ const ContactForm = () => {
             </div>
           </div>
           
-          <div className="bg-white p-8 sm:p-10 rounded-3xl shadow-2xl border border-slate-100 relative">
-            {status === 'success' ? (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="text-center py-12"
-              >
-                <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <CheckCircle2 size={40} />
-                </div>
-                <h3 className="text-2xl font-bold text-slate-900 mb-2">Richiesta Inviata!</h3>
-                <p className="text-slate-600">Ti ricontatteremo entro 2 ore lavorative.</p>
-                <button onClick={() => setStatus('idle')} className="mt-8 text-brand-blue font-bold hover:underline">Invia un'altra richiesta</button>
-              </motion.div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="grid sm:grid-cols-2 gap-5">
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700">Nome e Cognome</label>
-                    <input name="nome" required type="text" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="Mario Rossi" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700">Email Aziendale</label>
-                    <input name="email" required type="email" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="mario.rossi@azienda.it" />
-                  </div>
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-5">
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700">Telefono</label>
-                    <input 
-                      name="telefono" 
-                      required 
-                      type="tel" 
-                      value={phone}
-                      onChange={handlePhoneChange}
-                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
-                      placeholder="+39 333 1234567" 
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700">Nome Azienda / Studio</label>
-                    <input name="tipo_attivita" required type="text" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="es. Studio Legale, CAF..." />
-                  </div>
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-5">
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700">Postazioni di lavoro?</label>
-                    <input name="postazioni" required type="number" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="es. 5" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700">Quante stampanti avete?</label>
-                    <input name="quantita_stampanti" required type="number" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="es. 2" />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">Che Tipologia?</label>
-                  <select 
-                    name="tipologia_attuale" 
-                    required 
-                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none"
-                  >
-                    <option value="" disabled selected>Seleziona tipologia...</option>
-                    <option value="proprietà">Proprietà</option>
-                    <option value="noleggio">Noleggio</option>
-                  </select>
-                </div>
-                <div className="flex items-start gap-3 py-2">
-                  <input required type="checkbox" className="mt-1 h-4 w-4 rounded border-slate-300 text-brand-blue focus:ring-brand-blue" id="privacy" />
-                  <label htmlFor="privacy" className="text-xs text-slate-500 leading-relaxed">
-                    Accetto il trattamento dei dati personali secondo la <a href="#" className="underline">Privacy Policy</a>. I tuoi dati sono al sicuro.
-                  </label>
-                </div>
-                <button 
-                  type="submit" 
-                  disabled={status === 'loading'}
-                  className="w-full bg-brand-blue text-white py-4 rounded-xl text-lg font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {status === 'loading' ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      INVIO IN CORSO...
-                    </>
-                  ) : (
-                    'BLOCCA IL TUO COUPON'
-                  )}
-                </button>
-                {status === 'error' && (
-                  <p className="text-red-500 text-sm text-center font-medium">Si è verificato un errore. Riprova più tardi.</p>
-                )}
-              </form>
-            )}
-          </div>
+          <LeadForm />
         </div>
       </div>
     </section>
@@ -580,7 +582,7 @@ const Footer = () => (
       <div className="grid md:grid-cols-4 gap-12 mb-12">
         <div className="col-span-2">
           <div className="bg-white p-4 rounded-xl inline-block mb-6 shadow-xl">
-            <img src={LOGO_URL} alt="Digital System" className="h-10 object-contain" referrerPolicy="no-referrer" />
+            <img src={LOGO_URL} alt="Digital System" className="h-10 object-contain" referrerPolicy="no-referrer" loading="lazy" decoding="async" />
           </div>
           <p className="max-w-md mb-6">
             Digital System è il partner tecnologico di riferimento per il noleggio operativo di stampanti multifunzione. Soluzioni all-inclusive per l'ufficio moderno.
